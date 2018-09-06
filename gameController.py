@@ -60,7 +60,6 @@ class ChessGame():
         turnMap = {True: "White", False: "Black"}
         playerTurn = True
         lastClickedPiece = None
-        potentialMovesOfLastClickedPiece = None
         kingInCheck = False
 
         while not self.gameOver:
@@ -71,8 +70,9 @@ class ChessGame():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     mouseClickPosition = pygame.mouse.get_pos()
                     clickedBoardPosition = self.convertScreenCoordinatesToBoardPosition(mouseClickPosition)
+
                     if lastClickedPiece:
-                        for potentialMove in potentialMovesOfLastClickedPiece:
+                        for potentialMove in lastClickedPiece.positionsBeingAttackedByPiece:
                             if clickedBoardPosition in potentialMove:
                                 lastClickedPiece.movePiece(clickedBoardPosition, pieceCollidedWith=potentialMove[1])
                                 playerTurn = not playerTurn
@@ -81,20 +81,15 @@ class ChessGame():
                                 else:
                                     self.gameBoard.blackInCheck = self.gameBoard.blackKing.checkIfInCheck()
                                 lastClickedPiece = None
-                                potentialMovesOfLastClickedPiece = None
                     if lastClickedPiece == self.gameBoard.positionMap.get(clickedBoardPosition, None):
                         lastClickedPiece = None
-                        potentialMovesOfLastClickedPiece = None
+                        continue
                     else:
                         lastClickedPiece = self.gameBoard.positionMap.get(clickedBoardPosition, None)
                         if lastClickedPiece:
                             if lastClickedPiece.playerColor != turnMap[playerTurn]:
                                 lastClickedPiece = None
-                                potentialMovesOfLastClickedPiece = None
                                 continue
-                            potentialMovesOfLastClickedPiece = lastClickedPiece.findPotentialMoves()
-                        else:
-                            potentialMovesOfLastClickedPiece = None
 
             self.gameSurface.blit(self.backgroundChessBoard, (0, 0))
 
@@ -140,8 +135,8 @@ class ChessGame():
 
                 self.gameSurface.blit(pieceSprite, pieceCoordinates)
 
-            if potentialMovesOfLastClickedPiece:
-                for potentialMove in potentialMovesOfLastClickedPiece:
+            if lastClickedPiece:
+                for potentialMove in lastClickedPiece.positionsBeingAttackedByPiece:
                     dotSprite = self.greenDotSprite if potentialMove[1] is False else self.redBorderSprite
                     bufferDistance = self.dotBufferDistance if potentialMove[1] is False else 0
                     dotCoordinates = self.convertBoardPositionToScreenCoordinates(potentialMove[0], bufferDistance)
