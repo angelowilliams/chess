@@ -1,8 +1,11 @@
 import gameClasses
 import pygame
+import tkinter as tk
+from tkinter import *
+import os
+import platform
 
 class ChessGame():
-
     positionToCoordinateMultipleDict = {'a': 0,
                                         'b': 1,
                                         'c': 2,
@@ -22,11 +25,22 @@ class ChessGame():
 
     def __init__(self, screenSize):
         self.screenSize = screenSize
+        self.guiWidth = self.screenSize // 3
         self.blockSize = int(self.screenSize / 8)
         self.spriteSize = self.blockSize - int(self.blockSize * 0.2)
         self.bufferDistance = (self.blockSize - self.spriteSize) / 2
         self.dotSpriteSize = int(self.blockSize / 2)
         self.dotBufferDistance = int(self.blockSize / 4)
+
+        self.mainWin = tk.Tk()
+        embed = tk.Frame(self.mainWin, width=self.screenSize, height=self.screenSize)  # creates embed frame for pygame window
+        embed.grid()  # Adds grid
+        embed.pack(side=RIGHT)  # packs window to the right
+        buttonwin = tk.Frame(self.mainWin, width=self.guiWidth, height=self.screenSize)
+        buttonwin.pack(side=LEFT)
+        os.environ['SDL_WINDOWID'] = str(embed.winfo_id())
+        if platform.system == "Windows":
+            os.environ['SDL_VIDEODRIVER'] = 'windib'
 
         pygame.init()
         self.gameBoard = gameClasses.GameBoard()
@@ -74,7 +88,7 @@ class ChessGame():
                     if lastClickedPiece:
                         for potentialMove in lastClickedPiece.positionsBeingAttackedByPiece:
                             if clickedBoardPosition in potentialMove:
-                                lastClickedPiece.movePiece(clickedBoardPosition, pieceCollidedWith=potentialMove[1])
+                                lastClickedPiece.movePiece(clickedBoardPosition, pieceCollidedWith=potentialMove[1], castlingMove=potentialMove[2])
                                 playerTurn = not playerTurn
                                 if playerTurn:
                                     self.gameBoard.whiteInCheck = self.gameBoard.whiteKing.checkIfInCheck()
@@ -137,8 +151,11 @@ class ChessGame():
 
             if lastClickedPiece:
                 for potentialMove in lastClickedPiece.positionsBeingAttackedByPiece:
-                    dotSprite = self.greenDotSprite if potentialMove[1] is False else self.redBorderSprite
-                    bufferDistance = self.dotBufferDistance if potentialMove[1] is False else 0
+                    if potentialMove[1] and not potentialMove[2]:
+                        dotSprite = self.redBorderSprite
+                    else:
+                        dotSprite = self.greenDotSprite
+                    bufferDistance = 0 if potentialMove[1] and not potentialMove[2] else self.dotBufferDistance
                     dotCoordinates = self.convertBoardPositionToScreenCoordinates(potentialMove[0], bufferDistance)
 
                     transparentSurface = pygame.Surface((dotSprite.get_width(), dotSprite.get_height())).convert()
@@ -151,14 +168,17 @@ class ChessGame():
             if self.gameBoard.isWhiteInCheckmate:
                 print("Black wins!")
                 #return
+                #Closes the window instantly, not desireable
             elif self.gameBoard.isBlackInCheckmate:
                 print("White wins!")
                 #return
-            elif self.gameBoard.isStalemate:
+            elif self.gameBoard.isDraw:
                 print("Draw")
                 #return
 
             pygame.display.update()
+            self.mainWin.update()
+
         return
 
     def convertBoardPositionToScreenCoordinates(self, positionToConvert, bufferDistance):
